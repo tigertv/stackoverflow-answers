@@ -64,3 +64,20 @@ or you can use awk this way
 echo "SKU,QTY"
 awk -F, 'NR>1{a[$1] = $2}END{for (i in a) if(i != "SKU")print i","a[i]}' 1a.csv 2a.csv
 ```
+or Python:
+```python
+#!/usr/bin/python
+
+a={}
+def getDataFromFile(fname):
+    f = open(fname)
+    for line in f:
+       fields = line.strip().split(",")
+       a[fields[0]] = fields[1]
+							
+getDataFromFile('1a.csv')
+getDataFromFile('2a.csv')
+
+for key, value in a.iteritems():
+    print key+","+value 
+```

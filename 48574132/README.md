@@ -1,4 +1,4 @@
-# Question
+# [Question](https://stackoverflow.com/questions/48574132/how-to-find-matching-rows-of-the-first-column-and-add-quantities-of-the-second-c)
 
 I have a csv file that looks like this:
 ```
@@ -49,7 +49,7 @@ do
 done < 2asg.csv
 ```
 
-# Answer
+# [Answer](https://stackoverflow.com/a/48574931/9210255)
 
 For Bash 4:
 ```bash

@@ -1,55 +1,35 @@
-# [Question](https://stackoverflow.com/questions/48574132/how-to-find-matching-rows-of-the-first-column-and-add-quantities-of-the-second-c)
+# [Question](https://stackoverflow.com/questions/48604474/compare-first-two-columns-of-two-csv-files)
+I have two csv files, 1a.csv and 2a.csv
 
-I have a csv file that looks like this:
+1a.csv looks like this:
+```csv
+SKU, QTY
+KA005-001,17
+KA006-001,46
+KA010-001,25
+KA014-001,42`
 ```
-SKU,QTY
+2a.csv looks like this:
 
-KA006-001,2  
-KA006-001,33  
-KA006-001,46  
-KA009-001,22  
-KA009-001,7  
-KA010-001,18  
-KA014-001,3  
-KA014-001,42  
-KA015-001,1  
-KA015-001,16  
-KA020-001,6  
-KA022-001,56  
+```csv
+SKU, QTY
+KA006-001,81
+KA009-001,25
+KA010-001,18
+KA014-001,45`
 ```
-The first column is SKU. The second column is QTY number.
-
-Some lines in (SKU column only) are identical.
-
-I need to achieve the following:
+I need to get a new file like this 3a.csv:
+```csv
+SKU, QTY
+KA005-001,17 
+KA006-001,81 (i.e. 2a.csv QTY)
+KA009-001,25
+KA010-001,18 (i.e. 2a.csv QTY)
+KA014-001,45 (i.e. 2a.csv QTY)`
 ```
-SKU,QTY  
-KA006-001,81 (2+33+46)  
-KA009-001,29 (22+7)  
-KA010-001,18  
-KA014-001,45 (3+42)  
-```
-so on...
+Could someone help me with this problem as well ? Thank you very much.
 
-I tried different things , loop statements and arrays. Got so lost, got headache.
-
-My code:
-```bash
-#!/bin/bash
-
-while IFS=, read sku qty
-do
-    echo "SKU='$sku' QTY='$qty'"
-    if [ "$sku" = "$sku" ]
-    then
-        #x=("$sku" != "$sku")
-        for i in {0..3}; do echo $sku[$i]=$qty; done
-    fi
-
-done < 2asg.csv
-```
-
-# [Answer](https://stackoverflow.com/a/48574931/9210255)
+# [Answer]()
 
 For Bash 4:
 ```bash
@@ -57,17 +37,23 @@ For Bash 4:
 
 declare -A astr
 
-while IFS=, read -r col1 col2
-do
-    if [ "$col1" != "SKU" ] && [ "$col1" != "" ]
-    then
-        (( astr[$col1] += col2 ))
-    fi
-done < 2asg.csv
+getDataFromFile(){
+	while IFS=, read -r col1 col2
+	do
+		if [ "$col1" != "SKU" ] && [ "$col1" != "" ]
+		then
+			(( astr[$col1] = col2 ))
+		fi
+	done < $1 
+}
+
+getDataFromFile 1a.csv
+getDataFromFile 2a.csv
 
 echo "SKU,QTY"
 for i in "${!astr[@]}"
 do   
-    echo "$i,${astr[$i]}"
+	echo "$i,${astr[$i]}"
 done | sort -t : -k 2n
+
 ```

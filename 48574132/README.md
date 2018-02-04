@@ -1,5 +1,7 @@
-I have a csv file that looks like this:
+# Question
 
+I have a csv file that looks like this:
+```
 SKU,QTY
 
 KA006-001,2  
@@ -14,23 +16,25 @@ KA015-001,1
 KA015-001,16  
 KA020-001,6  
 KA022-001,56  
+```
 The first column is SKU. The second column is QTY number.
 
 Some lines in (SKU column only) are identical.
 
 I need to achieve the following:
-
+```
 SKU,QTY  
 KA006-001,81 (2+33+46)  
 KA009-001,29 (22+7)  
 KA010-001,18  
 KA014-001,45 (3+42)  
+```
 so on...
 
 I tried different things , loop statements and arrays. Got so lost, got headache.
 
 My code:
-
+```bash
 #!/bin/bash
 
 while IFS=, read sku qty
@@ -43,3 +47,27 @@ do
     fi
 
 done < 2asg.csv
+```
+
+# Answer
+
+For Bash 4:
+```bash
+#!/bin/bash
+
+declare -A astr
+
+while IFS=, read -r col1 col2
+do
+    if [ "$col1" != "SKU" ] && [ "$col1" != "" ]
+    then
+        (( astr[$col1] += col2 ))
+    fi
+done < 2asg.csv
+
+echo "SKU,QTY"
+for i in "${!astr[@]}"
+do   
+    echo "$i,${astr[$i]}"
+done | sort -t : -k 2n
+```

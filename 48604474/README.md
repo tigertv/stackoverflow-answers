@@ -29,7 +29,7 @@ KA014-001,45 (i.e. 2a.csv QTY)`
 ```
 Could someone help me with this problem as well ? Thank you very much.
 
-# [Answer]()
+# [Answer](https://stackoverflow.com/a/48609420/9210255)
 
 For Bash 4:
 ```bash

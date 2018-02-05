@@ -40,6 +40,6 @@ system 2018-02-05 04:23:49 :: ccccccccccccc
 
 Another one awk approach
 ```bash
-awk -F':' '$3!=p{print ""}{p=$3}{print}' file
+awk -F: '$3!=p{print ""}{p=$3}{print}' file
 ```
 We choose as separator symbol ':', and to define when we have to print a space line we check seconds, in this case it's $3.

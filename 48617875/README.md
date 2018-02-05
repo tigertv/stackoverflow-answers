@@ -42,4 +42,4 @@ Another one awk approach
 ```bash
 awk -F':' '$3!=p{print ""}{p=$3}{print}' file
 ```
-We choose as separator symbol ':', and to define when we have to print a space line we check seconds, in this case is $3.
+We choose as separator symbol ':', and to define when we have to print a space line we check seconds, in this case it's $3.

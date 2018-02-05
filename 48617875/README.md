@@ -1,73 +1,45 @@
-# [Question](https://stackoverflow.com/questions/48574132/how-to-find-matching-rows-of-the-first-column-and-add-quantities-of-the-second-c)
-
-I have a csv file that looks like this:
+# [Question](https://stackoverflow.com/questions/48617875/add-empty-line-between-each-time-blocks)
+I have the input log a form:
 ```
-SKU,QTY
-
-KA006-001,2  
-KA006-001,33  
-KA006-001,46  
-KA009-001,22  
-KA009-001,7  
-KA010-001,18  
-KA014-001,3  
-KA014-001,42  
-KA015-001,1  
-KA015-001,16  
-KA020-001,6  
-KA022-001,56  
+system 2018-02-05 04:15:49 :: aaaaaaaaaaaaa  
+system 2018-02-05 04:15:51 :: aaaaaaaaaaaaa  
+system 2018-02-05 04:15:51 :: aaaaaaaaaaaaa  
+system 2018-02-05 04:15:52 :: aaaaaaaaaaaaa  
+system 2018-02-05 04:15:53 :: aaaaaaaaaaaaa  
+system 2018-02-05 04:20:06 :: ccccccccccccc
+system 2018-02-05 04:21:10 :: bbbbbbbbbbbbb
+system 2018-02-05 04:21:10 :: ccccccccccccc
+system 2018-02-05 04:21:10 :: ccccccccccccc
+system 2018-02-05 04:21:10 :: ccccccccccccc
+system 2018-02-05 04:23:49 :: bbbbbbbbbbbbb
+system 2018-02-05 04:23:49 :: ccccccccccccc
 ```
-The first column is SKU. The second column is QTY number.
-
-Some lines in (SKU column only) are identical.
-
-I need to achieve the following:
+and want to have separated each time block by empty line. Expected output for above input would be:
 ```
-SKU,QTY  
-KA006-001,81 (2+33+46)  
-KA009-001,29 (22+7)  
-KA010-001,18  
-KA014-001,45 (3+42)  
+system 2018-02-05 04:15:49 :: aaaaaaaaaaaaa
+
+system 2018-02-05 04:15:51 :: aaaaaaaaaaaaa  
+system 2018-02-05 04:15:51 :: aaaaaaaaaaaaa  
+
+system 2018-02-05 04:15:52 :: aaaaaaaaaaaaa  
+
+system 2018-02-05 04:15:53 :: aaaaaaaaaaaaa  
+
+system 2018-02-05 04:20:06 :: ccccccccccccc
+
+system 2018-02-05 04:21:10 :: bbbbbbbbbbbbb
+system 2018-02-05 04:21:10 :: ccccccccccccc
+system 2018-02-05 04:21:10 :: ccccccccccccc
+system 2018-02-05 04:21:10 :: ccccccccccccc
+
+system 2018-02-05 04:23:49 :: bbbbbbbbbbbbb
+system 2018-02-05 04:23:49 :: ccccccccccccc
 ```
-so on...
 
-I tried different things , loop statements and arrays. Got so lost, got headache.
+# [Answer](https://stackoverflow.com/a/48629416/9210255)
 
-My code:
+Another one awk approach
 ```bash
-#!/bin/bash
-
-while IFS=, read sku qty
-do
-    echo "SKU='$sku' QTY='$qty'"
-    if [ "$sku" = "$sku" ]
-    then
-        #x=("$sku" != "$sku")
-        for i in {0..3}; do echo $sku[$i]=$qty; done
-    fi
-
-done < 2asg.csv
+awk -F':' '$3!=p{print ""}{p=$3}{print}' file
 ```
-
-# [Answer](https://stackoverflow.com/a/48574931/9210255)
-
-For Bash 4:
-```bash
-#!/bin/bash
-
-declare -A astr
-
-while IFS=, read -r col1 col2
-do
-    if [ "$col1" != "SKU" ] && [ "$col1" != "" ]
-    then
-        (( astr[$col1] += col2 ))
-    fi
-done < 2asg.csv
-
-echo "SKU,QTY"
-for i in "${!astr[@]}"
-do   
-    echo "$i,${astr[$i]}"
-done | sort -t : -k 2n
-```
+We choose as separator symbol ':', and to define when we have to print a space line we check seconds, in this case is $3.

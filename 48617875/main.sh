@@ -1,6 +1,6 @@
 #!/bin/bash
 
-Year='$1'
+Year='$2'
 Month='$2$3'
 Day='$2$3$4'
 Hour='$2$3$4$5'

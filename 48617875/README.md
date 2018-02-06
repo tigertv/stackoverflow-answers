@@ -40,6 +40,17 @@ system 2018-02-05 04:23:49 :: ccccccccccccc
 
 Another one awk approach
 ```bash
-awk -F: '$3!=p{print ""}{p=$3}{print}' file
+#!/bin/bash
+
+Year='$1'
+Month='$2$3'
+Day='$2$3$4'
+Hour='$2$3$4$5'
+Minute='$2$3$4$5$6'
+Second='$2$3$4$5$6$7'
+
+filter=$Minute
+
+awk -F'[ :-]' $filter'!=p{print ""}{p='$filter'}{print}' sys.log
+
 ```
-We choose as separator symbol ':', and to define when we have to print a space line we check seconds, in this case it's $3.

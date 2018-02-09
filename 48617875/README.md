@@ -55,11 +55,3 @@ awk -F'[ :-]' $filter'!=p{print ""}{p='$filter'}{print}' sys.log
 
 ```
 
-## Output
-
-second.sys.log - by second
-minute.sys.log - by minute 
-hour.sys.log - by hour
-day.sys.log - by day
-month.sys.log - by month
-year.sys.log - by year

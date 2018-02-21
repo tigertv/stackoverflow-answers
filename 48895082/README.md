@@ -2,7 +2,7 @@
 I am learning Assembly and I found something I don't understand clearly.
 
 If I have code like this
-```
+```asm
 section .data
     var dw 0x10, 0x20, 0x30
 

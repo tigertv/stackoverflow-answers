@@ -1,4 +1,4 @@
-# [Question]()
+# [Question](https://stackoverflow.com/questions/48895082/move-number-to-memory-with-different-sizes)
 I am learning Assembly and I found something I don't understand clearly.
 
 If I have code like this
@@ -22,7 +22,7 @@ Why was dx = 0x5678 stored as the first element and not the second? And after th
 
 How it works at all, if I attempt to put a bigger number into memory than it is reserved (let's say 256 into var_b resb 1)?<br>
 
-# [Answer]()
+# [Answer](https://stackoverflow.com/a/48895603/9210255)
 
 Your code stores 0x12345678 in edx, and then copy the value from edx in place where the var is placed. Lowest byte(8 bit) goes first when they are storied in memory from a register, because x86 processors are little endian.<br>
 

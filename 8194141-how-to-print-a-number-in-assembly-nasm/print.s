@@ -14,9 +14,9 @@ xor ebx, ebx
 int 0x80
 
 print:
+mov ecx, esp
 sub esp, 36   ; reserve space for the number string, for base-2 it takes 33 bytes with new line, aligned by 4 bytes it takes 36 bytes.
 mov edi, 1
-mov ecx, esp
 dec ecx
 mov [ecx], byte 10
 

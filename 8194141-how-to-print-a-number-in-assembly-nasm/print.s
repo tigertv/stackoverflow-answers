@@ -14,12 +14,11 @@ xor ebx, ebx
 int 0x80
 
 print:
+sub esp, 36   ; reserve space for the number string, for base-2 it takes 33 bytes with new line, aligned by 4 bytes it takes 36 bytes.
 mov edi, 1
 mov ecx, esp
-add esp, 32
 dec ecx
-mov edx, 10
-mov [ecx], dl
+mov [ecx], byte 10
 
 print_loop:
 
@@ -41,7 +40,7 @@ mov [ecx],dl
 test eax, eax
 jnz print_loop
 
-sub esp, 32
+add esp, 36   ; release space for the number string
 
 mov eax, 4
 mov ebx, 1

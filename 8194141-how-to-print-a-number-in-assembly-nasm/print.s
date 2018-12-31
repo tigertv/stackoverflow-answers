@@ -4,7 +4,7 @@ global _start
 section .text
 _start:
 
-mov eax, 12345695 ; unsigned number to print
+mov eax, 762002099; unsigned number to print
 mov ebx, 36       ; base to represent the number, do not set it too big
 call print
 

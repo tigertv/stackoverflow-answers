@@ -5,7 +5,7 @@ section .text
 _start:
 
 mov eax, 123 ; unsigned number to print
-mov ebx, 12  ; base to represent the number, do not set it too big
+mov ebx, 2  ; base to represent the number, do not set it too big
 call print
 
 ;exit
@@ -16,7 +16,7 @@ int 0x80
 print:
 mov edi, 1
 mov ecx, esp
-add esp, 12
+add esp, 32
 dec ecx
 mov edx, 10
 mov [ecx], dl
@@ -41,7 +41,7 @@ mov [ecx],dl
 test eax, eax
 jnz print_loop
 
-sub esp, 12
+sub esp, 32
 
 mov eax, 4
 mov ebx, 1

@@ -4,8 +4,8 @@ global _start
 section .text
 _start:
 
-mov eax, 123 ; unsigned number to print
-mov ebx, 12  ; base to represent the number, do not set it too big
+mov eax, 12345695 ; unsigned number to print
+mov ebx, 36       ; base to represent the number, do not set it too big
 call print
 
 ;exit
@@ -16,6 +16,7 @@ int 0x80
 print:
 mov ecx, esp
 sub esp, 36   ; reserve space for the number string, for base-2 it takes 33 bytes with new line, aligned by 4 bytes it takes 36 bytes.
+
 mov edi, 1
 dec ecx
 mov [ecx], byte 10
@@ -40,11 +41,11 @@ mov [ecx],dl
 test eax, eax
 jnz print_loop
 
-add esp, 36   ; release space for the number string
-
 mov eax, 4
 mov ebx, 1
 mov edx, edi
 int 0x80
+
+add esp, 36   ; release space for the number string
 
 ret

@@ -19,7 +19,7 @@ sub esp, 36   ; reserve space for the number string, for base-2 it takes 33 byte
 
 mov edi, 1
 dec ecx
-mov [ecx], byte 10
+mov [ecx], byte 10 ; add a new line
 
 print_loop:
 
@@ -41,9 +41,10 @@ mov [ecx],dl
 test eax, eax
 jnz print_loop
 
-mov eax, 4
-mov ebx, 1
-mov edx, edi
+; use system call to print, ecx is a pointer on the string
+mov eax, 4    ; system call number (sys_write)
+mov ebx, 1    ; file descriptor (stdout)
+mov edx, edi  ; length of the string
 int 0x80
 
 add esp, 36   ; release space for the number string

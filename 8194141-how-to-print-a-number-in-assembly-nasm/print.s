@@ -5,7 +5,7 @@ section .text
 _start:
 
 mov eax, 123 ; unsigned number to print
-mov ebx, 2  ; base to represent the number, do not set it too big
+mov ebx, 12  ; base to represent the number, do not set it too big
 call print
 
 ;exit

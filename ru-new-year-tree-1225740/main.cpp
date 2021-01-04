@@ -5,6 +5,7 @@
 #include <ctime>
 #include <chrono>
 #include <thread>
+#include <deque>
 
 
 class Screen {
@@ -48,7 +49,7 @@ public:
 
 		for (int i = 0; i < height; ++i) {
 			for(int j = 0; j < width; ++j) {
-				setCharAtXY(j, i, ' ', 105);
+				setCharAtXY(j, i, (uint32_t)0x01006920);
 			}
 		}
 
@@ -87,7 +88,7 @@ public:
 				screen.setCharAtXY(xx + j, y + i, '*', 2);
 			}
 			int k = std::rand() % (i * 2 + 1);
-			screen.setCharAtXY(xx + k, y + i, 'o', 15, 0xc4, 5);
+			screen.setCharAtXY(xx + k, y + i, (uint32_t)0x05c4026f);
 		}
 		// stem
 		for (xx = x; i < height; ++i) {
@@ -155,22 +156,23 @@ public:
 	int getX() { return x; }
 	int getY() { return y; }
 	void goLeft() { --x; }
-	void goRight() { ++x; }
+	void goRight() { ++x; (x & 1) ? --y : ++y;}
 
 	void draw(Screen& screen) override {
-		const int width = 12;
+		const int width = 13;
 		uint32_t points[][width] = {
-			{0x0106a020, 0x0106a020, 0x0106a020, 0x0106a020, 0x0106a020, 0, 0, 0, 0, 0, 0, 0,}, 
-			{0x01060f20, 0x01060f20, 0x01060f20, 0x01060f20, 0x01060f20, 0, 0, 0, 0, 0, 0, 0,}, 
-			{0x0106df20, 0x0100df4f, 0x0106df20, 0x0100df4f, 0x0106df20, 0, 0, 0, 0, 0, 0, 0,}, 
-			{0x0106df20, 0x0106df20, 0x0106df22, 0x0106df20, 0x0106df20, 0, 0, 0, 0, 0, 0, 0,}, 
-			{0x0106df20, 0x0106df20, 0x0106df7e, 0x0106df20, 0x0106df20, 0, 0, 0, 0, 0, 0, 0,}, 
-			{0x01060f20, 0x01060f20, 0x01060f20, 0x01060f20, 0x01060f20, 0, 0, 0, 0, 0, 0, 0,}, 
-			{0x0106a020, 0x0106a020, 0x01060f20, 0x0106a020, 0x0106a020, 0x0106a020, 0x0106df20, 0, 0, 0, 0, 0,}, 
-			{0x0106a020, 0x0106a020, 0x01060f20, 0x0106a020, 0x0106a020, 0x00000000, 0x0106a020, 0x0106a020, 0x0106a020, 0x0106a020, 0x0106a020, 0, }, 
-			{0x0106a020, 0x0106a020, 0x01060f20, 0x0106a020, 0x0106a020, 0x00000000, 0x0106a020, 0x0106a020, 0x0106a020, 0x0106a020, 0x0106a020, 0, }, 
-			{0x01060f20, 0x01060f20, 0x01060f20, 0x01060f20, 0x01060f20, 0x00000000, 0x0106a020, 0x0106a020, 0x0106a020, 0x0106a020, 0x0106a020, 0, }, 
-			{0x01000020, 0x01000020, 0x00000000, 0x01000020, 0x01000020, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0, }, 
+			{0x00000000, 0x00000000, 0x0106a020, 0x0106a020, 0x0106a020, 0x00000000, 0, 0, 0, 0, 0, 0, 0,}, 
+			{0x00000000, 0x0106a020, 0x0106a020, 0x0106a020, 0x0106a020, 0x0106a020, 0, 0, 0, 0, 0, 0, 0,}, 
+			{0x00000000, 0x01060f20, 0x01060f20, 0x01060f20, 0x01060f20, 0x01060f20, 0, 0, 0, 0, 0, 0, 0,}, 
+			{0x0106df28, 0x0106df20, 0x0100df4f, 0x0106df20, 0x0100df4f, 0x0106df20, 0x0106df29, 0, 0, 0, 0, 0, 0,}, 
+			{0x00000000, 0x0106df20, 0x0106df20, 0x0106df22, 0x0106df20, 0x0106df20, 0, 0, 0, 0, 0, 0, 0,}, 
+			{0x00000000, 0x0106df20, 0x0106df20, 0x0106df7e, 0x0106df20, 0x0106df20, 0, 0, 0, 0, 0, 0, 0,}, 
+			{0x00000000, 0x01060f20, 0x01060f20, 0x01060f20, 0x01060f20, 0x01060f20, 0, 0, 0, 0, 0, 0, 0,}, 
+			{0x00000000, 0x0106a020, 0x0106a020, 0x01060f20, 0x0106a020, 0x0106a020, 0x0106a020, 0x0106df20, 0, 0, 0, 0, 0,}, 
+			{0x00000000, 0x0106a020, 0x0106a020, 0x01060f20, 0x0106a020, 0x0106a020, 0x00000000, 0x0106a020, 0x0106a020, 0x0106a020, 0x0106a020, 0x0106a020, 0, }, 
+			{0x00000000, 0x0106a020, 0x0106a020, 0x01060f20, 0x0106a020, 0x0106a020, 0x00000000, 0x0106a020, 0x0106a020, 0x0106a020, 0x0106a020, 0x0106a020, 0, }, 
+			{0x00000000, 0x01060f20, 0x01060f20, 0x01060f20, 0x01060f20, 0x01060f20, 0x00000000, 0x0106a020, 0x0106a020, 0x0106a020, 0x0106a020, 0x0106a020, 0, }, 
+			{0x00000000, 0x01000020, 0x01000020, 0x00000000, 0x01000020, 0x01000020, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0, }, 
 
 		};
 
@@ -187,15 +189,62 @@ public:
 	}
 };
 
+class SnowFall: public IScreenable {
+private:
+	int y;
+	uint32_t packedSnowFlake = 0x010f0f23;
+	std::vector<std::vector<int>> points;
+
+	void step() {
+		if (++y > 29) y = 0;
+	}
+
+public:
+	SnowFall() {
+		y = 0;
+		int height = 14; 
+		int sWidth = 100;
+		int snowInRow = 3;
+		std::srand(std::time(nullptr));
+		for(int i = 0; i < height; ++i) {
+			std::vector<int> a;
+			for(int j = 0; j < snowInRow; ++j) {
+				a.push_back(std::rand() % sWidth);	
+			}
+			points.push_back(a);
+		}
+	}
+
+	void setY(int y) { this->y = y; }
+	int getY() { return y; }
+
+	void draw(Screen& screen) override {
+		int height = points.size();
+
+		int sHeight = screen.getHeight();
+		int sWidth = screen.getWidth();
+
+		for (int i = 0; i < height ; ++i) {
+			for (int j = 0; j < points[i].size(); ++j) {
+				int yy = y + i * 2;
+				if (yy >= sHeight) yy -= sHeight;
+				screen.setCharAtXY(points[i][j], yy, packedSnowFlake);
+			}
+		}
+
+		step();
+	}
+};
+
 int main() {
 	Screen screen(100, 30);
 	std::vector<IScreenable*> objects;
 
 	Ground ground; objects.push_back(&ground);
-	Tree tree(50, 8, 20); objects.push_back(&tree);
+	Tree tree(50, 7, 20); objects.push_back(&tree);
+	SnowFall snow; objects.push_back(&snow);
+	DedMoroz santa(0, 16); objects.push_back(&santa);
 	BigText text; objects.push_back(&text);
-	DedMoroz santa(0, 18); objects.push_back(&santa);
-
 
 	bool isPlaying = true;	
 	while(isPlaying ) {

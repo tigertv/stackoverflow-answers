@@ -3,6 +3,7 @@
 #include <vector>
 #include <chrono>
 #include <thread>
+#include <string>
 
 
 class Screen {
@@ -247,6 +248,47 @@ public:
 	}
 };
 
+class Window: public IScreenable {
+private:
+	int x = 60;
+	int y = 15;
+	int width = 35;
+	int height = 7;
+	int color = 195;
+public:
+	void draw(Screen& screen) override {
+
+		// vertical borders
+		for (int i = 0; i < height ; ++i) {
+			screen.setCharAtXY(x, y + i, ' ', color);
+			screen.setCharAtXY(x + width - 1, y + i, ' ', color);
+		}
+
+		// horizontal borders
+		for (int i = 1; i < width - 1; ++i) {
+			screen.setCharAtXY(x + i, y, ' ', color);
+			screen.setCharAtXY(x + i, y + height - 1, ' ', color);
+		}
+
+		const std::string texts[] = {
+			"       HO-HO-HO, HO-HO-HO      ",
+			"       MERRY CHRISTMAS !!!     ",
+			"       HAPPY NEW YEAR !!!      ",
+		};
+
+		int xx = x + 2;
+		int yy = y + 2;
+		int size = sizeof(texts) / sizeof(texts[0]);
+		for (int i = 0; i < size; ++i) {
+			for (int j = 0; j < texts[i].size(); ++j) {
+				screen.setCharAtXY(xx + j, yy + i, texts[i][j], color);
+			}
+		}
+
+	}
+
+};
+
 int main() {
 	Screen screen(100, 30);
 	std::vector<IScreenable*> objects;
@@ -255,19 +297,24 @@ int main() {
 	Tree tree(50, 7, 20); objects.push_back(&tree);
 	DedMoroz santa(0, 16); objects.push_back(&santa);
 	SnowFall snow; objects.push_back(&snow);
-	BigText text; objects.push_back(&text);
+	BigText text; 
+	Window window; 
 
 	bool isPlaying = true;	
 	while(isPlaying ) {
 		screen.clear();
 		santa.goRight();
-		if (santa.getX() == 50) isPlaying = false;
+		if (santa.getX() == 50) {
+			isPlaying = false;
+			objects.push_back(&text);
+			objects.push_back(&window);
+		}
 
 		for (IScreenable* const obj : objects) {
 			obj->draw(screen);
 		}
 
 		screen.show();
-		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		std::this_thread::sleep_for(std::chrono::milliseconds(700));
 	}
 }

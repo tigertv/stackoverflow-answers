@@ -1,11 +1,8 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <cstdlib>
-#include <ctime>
 #include <chrono>
 #include <thread>
-#include <deque>
 
 
 class Screen {
@@ -43,6 +40,10 @@ public:
 
 	void setCharAtXY(int x, int y, uint32_t packedChar) {
 		chars[x + y * width] = packedChar;
+	}
+
+	uint32_t getCharAtXY(int x, int y) {
+		return chars[x + y * width];
 	}
 
 	void clear() {
@@ -192,19 +193,22 @@ public:
 class SnowFall: public IScreenable {
 private:
 	int y;
-	uint32_t packedSnowFlake = 0x010f0f23;
+	int x;
+	int snowInRow = 3;
+	const uint32_t packedSnowFlake = 0x010f0023;
 	std::vector<std::vector<int>> points;
 
 	void step() {
-		if (++y > 29) y = 0;
+		if (++y >= 30) y = 0;
+		if (++x >= 100) x = 0;
 	}
 
 public:
 	SnowFall() {
 		y = 0;
+		x = 0;
 		int height = 14; 
 		int sWidth = 100;
-		int snowInRow = 3;
 		std::srand(std::time(nullptr));
 		for(int i = 0; i < height; ++i) {
 			std::vector<int> a;
@@ -225,10 +229,17 @@ public:
 		int sWidth = screen.getWidth();
 
 		for (int i = 0; i < height ; ++i) {
-			for (int j = 0; j < points[i].size(); ++j) {
+			for (int j = 0; j < snowInRow; ++j) {
 				int yy = y + i * 2;
+				int xx = x + points[i][j];
 				if (yy >= sHeight) yy -= sHeight;
-				screen.setCharAtXY(points[i][j], yy, packedSnowFlake);
+				if (xx >= sWidth) xx -= sWidth;
+
+				uint32_t c = screen.getCharAtXY(xx, yy);
+				c &= 0x0000ff00; // current background
+				c |= packedSnowFlake; // change background for a snowflake
+
+				screen.setCharAtXY(xx, yy, c);
 			}
 		}
 
@@ -242,8 +253,8 @@ int main() {
 
 	Ground ground; objects.push_back(&ground);
 	Tree tree(50, 7, 20); objects.push_back(&tree);
-	SnowFall snow; objects.push_back(&snow);
 	DedMoroz santa(0, 16); objects.push_back(&santa);
+	SnowFall snow; objects.push_back(&snow);
 	BigText text; objects.push_back(&text);
 
 	bool isPlaying = true;	

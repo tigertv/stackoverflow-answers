@@ -205,7 +205,7 @@ private:
 	int y;
 	int x;
 	int snowInRow = 3;
-	const uint32_t packedSnowFlake = 0x010f0023;
+	const uint32_t packedSnowFlake = 0x010f002a;
 	std::vector<std::vector<int>> points;
 
 	void step() {

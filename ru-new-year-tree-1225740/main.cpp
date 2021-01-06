@@ -11,6 +11,7 @@ private:
 	int height = 30;
 	int width = 100;
 	std::vector<uint32_t> chars;
+	std::vector<uint32_t> backgroundScreen;
 
 public:
 	Screen(int width, int height) : chars(height * width, (int)((1 << 8) | ' ') ) {}
@@ -49,13 +50,21 @@ public:
 
 	void clear() {
 
-		for (int i = 0; i < height; ++i) {
-			for(int j = 0; j < width; ++j) {
-				setCharAtXY(j, i, (uint32_t)0x01006920);
+		if (backgroundScreen.size()) {
+			chars = backgroundScreen;
+		} else {
+			for (int i = 0; i < height; ++i) {
+				for(int j = 0; j < width; ++j) {
+					setCharAtXY(j, i, 0x01006920U);
+				}
 			}
 		}
 
 		std::cout << "\x1b[2J\x1b[H";
+	}
+
+	void save() {
+		backgroundScreen = chars;
 	}
 
 };
@@ -90,7 +99,7 @@ public:
 				screen.setCharAtXY(xx + j, y + i, '*', 2);
 			}
 			int k = std::rand() % (i * 2 + 1);
-			screen.setCharAtXY(xx + k, y + i, (uint32_t)0x05c4026f);
+			screen.setCharAtXY(xx + k, y + i, 0x05c4026fU);
 		}
 		// stem
 		for (xx = x; i < height; ++i) {
@@ -280,7 +289,7 @@ public:
 		int yy = y + 2;
 		int size = sizeof(texts) / sizeof(texts[0]);
 		for (int i = 0; i < size; ++i) {
-			for (int j = 0; j < texts[i].size(); ++j) {
+			for (int j = 0; j < (int)texts[i].size(); ++j) {
 				screen.setCharAtXY(xx + j, yy + i, texts[i][j], color);
 			}
 		}
@@ -293,17 +302,22 @@ int main() {
 	Screen screen(100, 30);
 	std::vector<IScreenable*> objects;
 
-	Ground ground; objects.push_back(&ground);
-	Tree tree(50, 7, 20); objects.push_back(&tree);
+	screen.clear();
+	// static objects for background can be saved
+	Ground ground; ground.draw(screen);
+	Tree tree(50, 7, 20); tree.draw(screen);
+	screen.save();
+
 	DedMoroz santa(0, 16); objects.push_back(&santa);
 	SnowFall snow; objects.push_back(&snow);
 	BigText text; 
 	Window window; 
 
 	bool isPlaying = true;	
-	while(isPlaying ) {
+
+	while(isPlaying) {
 		screen.clear();
-		santa.goRight();
+		santa.goRight(); // go to the tree
 		if (santa.getX() == 50) {
 			isPlaying = false;
 			objects.push_back(&text);
@@ -317,4 +331,5 @@ int main() {
 		screen.show();
 		std::this_thread::sleep_for(std::chrono::milliseconds(700));
 	}
+
 }

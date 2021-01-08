@@ -3,7 +3,6 @@
 #include <vector>
 #include <chrono>
 #include <thread>
-#include <string>
 
 
 class Screen {
@@ -159,6 +158,7 @@ class DedMoroz : public IScreenable {
 private:
 	int x;
 	int y;
+	bool isSmiling = false;
 
 public:
 	DedMoroz(int x, int y) : x(x), y(y) {}
@@ -168,6 +168,9 @@ public:
 	int getY() { return y; }
 	void goLeft() { --x; }
 	void goRight() { ++x; (x & 1) ? --y : ++y;}
+	void smile() {
+		isSmiling = true;
+	}
 
 	void draw(Screen& screen) override {
 		const int width = 13;
@@ -195,6 +198,23 @@ public:
 					screen.setCharAtXY(x + j, y + i, points[i][j]);
 				}
 
+			}
+		}
+
+		if (isSmiling) {
+			uint32_t points2[][5] = {
+				{0x0, 0x00000000, 0x00000000, 0x00000000, 0x0}, 
+				{0x0, 0x0106df5c, 0x0106df5f, 0x0106df2f, 0x0}, 
+			};
+			int xx = x + 1;
+			int yy = y + 4;
+			for (int i = 0; i < 2; ++i) {
+				for (int j = 0; j < 5; ++j) {
+					if (points2[i][j]) {
+						screen.setCharAtXY(xx + j, yy + i, points2[i][j]);
+					}
+
+				}
 			}
 		}
 	}
@@ -320,6 +340,7 @@ int main() {
 		santa.goRight(); // go to the tree
 		if (santa.getX() == 50) {
 			isPlaying = false;
+			santa.smile();
 			objects.push_back(&text);
 			objects.push_back(&window);
 		}

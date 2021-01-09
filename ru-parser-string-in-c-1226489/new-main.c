@@ -144,6 +144,10 @@ Node* parse_grammar(const char * grammar) {
 				++cur;
 				skip_spaces();
 				continue;
+			} else if (*cur == '{') {
+				// push a node on stack
+			} else if (*cur == '}') {
+				// pop a node on stack
 			} else {
 				// non-terminal
 
@@ -237,7 +241,7 @@ bool visit(Node* node) {
 				visit_skip_spaces();
 				char* begin_visit = visit_str;
 				bool r = visit(node->left);
-				int diff = (int)visit_str - (int)begin_visit;
+				int diff = (int)(visit_str - begin_visit);
 				handlers[node->param_value](begin_visit, diff);
 				return r;
 			}
@@ -282,11 +286,9 @@ struct record {
 };
 
 struct record* precord = NULL;
-int record_index2 = 0;
 struct record records[256];
 int records_last_index = 0;
-int record_param1 = 0;
-int record_param2 = 0;
+int current_param_index = 0;
 
 void dummy_func(char* s, int size) {
 	printf("DUMMY FUNCTION executed\nstr=");
@@ -313,60 +315,35 @@ void param0(char* s, int size) {
 
 void param1(char* s, int size) {
 	int r = atoi(s);
-	//records[records_last_index].param[record_index2 * 2] = r;
-	record_param1 = r;
-	printf("param1 executed\ndigit=%d\n", r);
+	records[records_last_index].param[current_param_index++] = r;
 }
 
-void param2(char* s, int size) {
-	int r = atoi(s);
-	record_param2 = r;
-	//records[records_last_index].param[record_index2 * 2 + 1] = r;
-	printf("param2 executed\ndigit=%d\n", r);
-}
-
-void param3(char* s, int size) {
-	//record_index2 = 0;
-	records[records_last_index].param[0] = record_param1;
-	records[records_last_index].param[1] = record_param2;
-	printf("param3 executed\n");
-}
-
-void param4(char* s, int size) {
-	//record_index2 = 1;
-	records[records_last_index].param[2] = record_param1;
-	records[records_last_index].param[3] = record_param2;
-	++records_last_index;
-	printf("param4 executed\n");
+void empty_func(char* s, int size) {
+	
 }
 
 void init_handlers() {
 	handlers[0] = param0;
 	handlers[1] = param1;
-	handlers[2] = param2;
-	handlers[3] = param3;
-	handlers[4] = param4;
 
-	for(int i = 5; i < HANDLERS_SIZE; ++i) {
-		handlers[i] = dummy_func;
+	for(int i = 2; i < HANDLERS_SIZE; ++i) {
+		handlers[i] = empty_func;
+		//handlers[i] = dummy_func;
 	}
 }
 
 int main() {
 	const char *grammar = 
-		"record = '{' pstring ';' %3 ';' %4 '}' ;" \
-		"%3 = two_param ;"  \
-		"%4 = two_param ;"  \
-		"two_param = '[' %1 '&' %2 ']' ; "  \
-		"%1 = digit ;"  \
-		"%2 = digit ;"  \
-		"pstring = ''' %0 ''' ; " \
-		"string = ''' char char ''' ; " \
-		"%0 = char char ;"  \
-		"char = letter | digit ; " \
-		"letter = small_letter | capital_letter ; " \
-		"small_letter = 'a' | 'b' | 'c' ; " \
-		"capital_letter = 'A'|'B'|'C'; " \
+		"record = '{' pstring ';' two_param ';' two_param '}' ;"
+		"two_param = '[' %1 '&' %1 ']' ;"
+		"%1 = digit ;"
+		"pstring = ''' %0 ''' ;"
+		"string = ''' char char ''' ;"
+		"%0 = char char ;"
+		"char = letter | digit ;"
+		"letter = small_letter | capital_letter ; "
+		"small_letter = 'a' | 'b' | 'c' | 'd' ;"
+		"capital_letter = 'A'|'B'|'C'|'D';"
 		"digit = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' ;";
 
 	Node* gram = parse_grammar(grammar);	
@@ -380,26 +357,33 @@ int main() {
 	init_handlers();
 
 	char * in =  
-		"{ 'b1' ; [ 2 & 2 ] ; [2&3] }" \
-		"{ 'Bc' ; [ 3 & 2 ] ; [2&4] }" \
-		"{ 'ab' ; [ 1 & 2 ] ; [ 3 & 1 ] }";
+		"{ 'b1' ; [ 2 & 7 ] ; [1&3] }"
+		"{ 'Bc' ; [ 3 & 9 ] ; [6&4] }"
+		"{ '27' ; [ 3 & 8 ] ; [7&4] }"
+		"{ 'ad' ; [ 1 & 0 ] ; [ 3 & 1 ] }";
 
 	visit_str = in;
-	int m = 0;
-	while(*visit_str != NULL) {
+	while(*visit_str != '\0') {
 		bool result = visit(gram);
 		printf("result = %d\n", result);
-		if (!result) break;
+		if (result) {
+			// make record
+			current_param_index = 0;	
+			++records_last_index;
+		} else {
+			break;
+		}
 	}
 
 	for(int i = 0; i < records_last_index; ++i) {
 		printf("str %d = %s %d %d %d %d\n", i, records[i].name, records[i].param[0], records[i].param[1], records[i].param[2], records[i].param[3]);
 	}
-
+/*
 	const char * s[] = {
 		" { 'Parametr1 2000' ; [ 5 & 2 ] ; [ 3 & 2 ] }{'ParametrLoooooooong 2021';[10&5];[ 6 &4]}",
 		"{'Parametr 2000' ; [ 5&2 ] ; [ 3 & 4 ] }",
 		"{ 'Parametr 2000';[ 5 & 2 ];[ 3 &10 ] }"
 	};
+	//*/
 }
 

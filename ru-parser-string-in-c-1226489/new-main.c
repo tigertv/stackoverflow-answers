@@ -8,7 +8,7 @@ void handler_func(int index, char *s , int size);
 char *cur = NULL;
 	
 typedef struct node {
-	enum node_type {TERM, NON_TERM, PARAM, OR, AND, REPEAT, DIGIT} type;
+	enum node_type {TERM, NON_TERM, PARAM, OR, AND, REPEAT, DIGIT, LETTER} type;
 	char value; // for TERM 
 	char* id;   // for NON_TERM
 	int param_value; // for PARAM
@@ -109,7 +109,7 @@ Node* expr() {
 			}
 			++cur;
 
-			printf("terminal = '%c'\n", c);
+			//printf("terminal = '%c'\n", c);
 
 			Node* term = malloc(sizeof(Node));
 			term->value = c; 
@@ -258,11 +258,20 @@ Node* parse_grammar(const char * grammar) {
 		skip_spaces();
 	}
 
-	struct st_entry* digit = find_entry("digit");
-	if (digit && digit->node->type == NON_TERM) {
+	struct st_entry* entry = find_entry("digit");
+	if (entry && entry->node->type == NON_TERM) {
+		// set "digit" to default if there is no NON_TERMINAL "digit"
 		// NON_TERM node shouldn't be presented in the end of creating of grammar AST
-		Node* p = digit->node;
+		Node* p = entry->node;
 		p->type = DIGIT;
+	}
+
+	entry = find_entry("letter");
+	if (entry && entry->node->type == NON_TERM) {
+		// set "letter" to default if there is no NON_TERMINAL "letter"
+		// NON_TERM node shouldn't be presented in the end of creating of grammar AST
+		Node* p = entry->node;
+		p->type = LETTER;
 	}
 
 	return st[0].node;
@@ -274,11 +283,10 @@ bool visit(Node* node) {
 		printf("Node is NULL\n");
 		return false;
 	}
-	bool inRepeating = false;
 
 	switch(node->type) {
 		case TERM:
-			if (!inRepeating) skip_spaces();
+			skip_spaces();
 
 			if (node->value == *cur) {
 				printf("term=%c\n", *cur);
@@ -296,10 +304,19 @@ bool visit(Node* node) {
 			return visit(node->left);
 			break;
 		//*/
+		case LETTER : {
+			//printf("visit LETTER: %c\n", *cur);
+			if ( (*cur >= 'a' && *cur <= 'z') || (*cur >= 'A' && *cur <= 'Z') ) {
+				printf("LETTER: %c\n", *cur);
+				++cur;
+				return true;
+			}
+			return false;
+		}	break;
 
 		case DIGIT : {
 			//skip_spaces();
-			printf("visit DIGIT: %c\n", *cur);
+			//printf("visit DIGIT: %c\n", *cur);
 			if (*cur >= '0' && *cur <= '9') {
 				printf("DIGIT: %c\n", *cur);
 				++cur;
@@ -310,21 +327,19 @@ bool visit(Node* node) {
 			break;
 
 		case REPEAT: {
-			printf("REPEAT: %s\n", "g");
+			//printf("REPEAT: %s\n", "g");
 			char* tmp = cur;	
-			inRepeating = true;
 			while(visit(node->left)) {
 				tmp = cur;
 			}
 			cur = tmp;
-			printf("REPEAT end: %c\n", *cur);
-			inRepeating = false;
+			//printf("REPEAT end: %c\n", *cur);
 			return true;
 		}
 			break;
 
 		case PARAM:
-			if (!inRepeating) skip_spaces();
+			skip_spaces();
 			//printf("PARAM: %s\n", node->id);
 			{
 				// remember string
@@ -337,7 +352,7 @@ bool visit(Node* node) {
 			break;
 
 		case AND: {
-			if (!inRepeating) skip_spaces();
+			skip_spaces();
 			//printf("AND\n");
 			bool a = visit(node->left);
 			if (a == false) return a;
@@ -349,7 +364,7 @@ bool visit(Node* node) {
 			break;
 
 		case OR: {
-			if (!inRepeating) skip_spaces();
+			skip_spaces();
 			//printf("OR\n");
 			//printf("OR cur = %c\n", *cur);
 			char* tmp = cur;	
@@ -441,7 +456,7 @@ void parse_data(Node* gram, const char* s) {
 	cur = s;
 	while(*cur != '\0') {
 		bool result = visit(gram);
-		printf("PARSE_DATA result = %d\n", result);
+		//printf("PARSE_DATA result = %d\n", result);
 		current_param_index = 0;	
 		if (result) {
 			// make record
@@ -455,17 +470,14 @@ void parse_data(Node* gram, const char* s) {
 int main() {
 	const char *grammar = 
 		"record = '{' pstring ';' two_param ';' two_param '}' ;"
-		"two_param = '[' %1 '&' %1 ']' ;"
-		"%1 = {digit} ;"
 		"pstring = ''' %0 ''' ;"
 		"%0 = {char} ;"
-		"char = ' ' | letter | digit ;"
-		"letter = small_letter | capital_letter ; "
-		"small_letter   = 'a'|'b'|'c'|'d'|'e'|'f'|'g'|'h'|'i'|'j'|'k'|'l'|'m'|'n'|'o'|'p'|'q'|'r'|'s'|'t'|'u'|'v'|'w'|'x'|'y'|'z';"
-		"capital_letter = 'A'|'B'|'C'|'D'|'E'|'F'|'G'|'H'|'I'|'J'|'K'|'L'|'M'|'N'|'O'|'P'|'Q'|'R'|'S'|'T'|'U'|'V'|'W'|'X'|'Y'|'Z';"
-//		"digit = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' ;"
+		"char = letter | ' ' | digit ;"
+		"two_param = '[' %1 '&' %1 ']' ;"
+		"%1 = {digit} ;"
 	;
-	// digit becomes default
+	// "digit" is by default
+	// "letter" is by default
 
 	Node* gram = parse_grammar(grammar);	
 

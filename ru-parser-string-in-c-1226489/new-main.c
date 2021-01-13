@@ -2,13 +2,13 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-char *cur = NULL;
+#define ENTRIES 128
+void handler_func(int index, char *s , int size); 
 
-#define HANDLERS_SIZE 256
-void (*handlers[HANDLERS_SIZE])(char *s , int size);
+char *cur = NULL;
 	
 typedef struct node {
-	enum node_type {TERM, NON_TERM, PARAM, OR, AND} type;
+	enum node_type {TERM, NON_TERM, PARAM, OR, AND, REPEAT} type;
 	char value; // for TERM 
 	char* id;   // for NON_TERM
 	int param_value; // for PARAM
@@ -21,7 +21,7 @@ struct st_entry {
 	Node* node;
 };
 
-struct st_entry st[256] = {0};
+struct st_entry st[ENTRIES] = {0};
 int st_last_index = 0;
 
 struct st_entry* find_entry(char *name) {
@@ -61,7 +61,7 @@ int st_num_param(char* name) {
 }
 
 void skip_spaces() {
-	while (*cur == ' ') ++cur;
+	while (*cur == ' ' || *cur == '\n') ++cur;
 }
 
 void ex(char c) { // expect char
@@ -92,6 +92,123 @@ char* id() { // identificator
 	return ret;	
 }
 
+Node* expr() {
+	//enum node_type operation = AND;
+	skip_spaces();
+
+	Node* pnode = NULL;
+
+	while (*cur != '\0' && *cur != ';') { 
+		//printf("operation = %d\n", operation);
+		if (*cur == '\'') {
+			// terminal
+			++cur;
+			char c = *cur;
+			if (c == '\0') {
+				printf("Error: expected a char\n");
+				exit(-1);
+			}
+			++cur;
+//				printf("terminal = %c\n", c);
+			ex('\'');
+
+			Node* term = malloc(sizeof(Node));
+			term->type = TERM;			
+			term->value = c; 
+
+			if (pnode) {
+				Node* anode = malloc(sizeof(Node));
+				anode->type = AND;
+				anode->left = pnode;
+				anode->right = term;
+				pnode = anode;
+			} else {
+				pnode = term;
+			}
+
+		} else if (*cur == '|') {
+			++cur;
+			Node* n = expr();
+			if (pnode) {
+				Node* anode = malloc(sizeof(Node));
+				anode->type = OR;
+				anode->left = pnode;
+				anode->right = n;
+				pnode = anode;
+			} else {
+				pnode = n;
+			}
+			
+		} else if (*cur == '(') {
+			 
+		} else if (*cur == ')') {
+
+		} else if (*cur == '{') {
+			++cur;
+			Node* n = expr();
+
+			Node* rep = malloc(sizeof(Node));
+			rep->type = REPEAT;
+			rep->left = n;
+			rep->right = NULL;
+
+			if (pnode) {
+				Node* anode = malloc(sizeof(Node));
+				anode->type = AND;
+				anode->left = pnode;
+				anode->right = rep;
+			} else {
+				pnode = rep;
+			}
+
+		} else if (*cur == '}') {
+			++cur;
+			return pnode;
+		} else {
+			// non-terminal
+
+			char* name = id();
+//				printf("non-terminal = %s\n", name);
+			// search in symbol_table
+			struct st_entry * entry = find_entry(name);
+
+			if (entry) {
+				free(name);
+			} else {
+				// add in table
+//					printf("add in table: %s\n", name);
+				Node* anode = malloc(sizeof(Node));
+				anode->type = NON_TERM;
+				anode->id = name;
+				anode->left = NULL;
+				anode->right = NULL;
+
+				entry = add_entry(name, anode);
+
+				int num = st_num_param(name);
+
+				if (num != -1) {
+					entry->node->type = PARAM;
+					entry->node->param_value = num;
+				}
+			}
+			
+			if (pnode) {
+				Node* anode = malloc(sizeof(Node));
+				anode->type = AND;//operation;
+				anode->left = pnode;
+				anode->right = entry->node;
+
+				pnode = anode;
+			} else {
+				pnode = entry->node;
+			}
+		}
+		skip_spaces();
+	}
+	return pnode;
+}
+
 Node* parse_grammar(const char * grammar) {
 	cur = grammar;
 
@@ -106,109 +223,22 @@ Node* parse_grammar(const char * grammar) {
 			anode->type = NON_TERM;
 			anode->id = record;
 			anode->left = NULL;
+			anode->right = NULL;
 
 			root_entry = add_entry(record, anode);
 		}
 
 		ex('=');
-		skip_spaces();
 
-		enum node_type operation = AND;
-		Node* pnode = NULL;
-
-		while (*cur != '\0' && *cur != ';') { 
-			//printf("operation = %d\n", operation);
-			if (*cur == '\'') {
-				// terminal
-				++cur;
-				char c = *cur++;
-//				printf("terminal = %c\n", c);
-				ex('\'');
-
-				Node* term = malloc(sizeof(Node));
-				term->type = TERM;			
-				term->value = c; 
-
-				if (pnode) {
-					Node* anode = malloc(sizeof(Node));
-					anode->type = operation;
-					anode->left = pnode;
-					anode->right = term;
-					pnode = anode;
-				} else {
-					pnode = term;
-				}
-
-			} else if (*cur == '|') {
-				operation = OR;
-				++cur;
-				skip_spaces();
-				continue;
-			} else if (*cur == '{') {
-				// push a node on stack
-			} else if (*cur == '}') {
-				// pop a node on stack
-			} else {
-				// non-terminal
-
-				char* name = id();
-//				printf("non-terminal = %s\n", name);
-				// search in symbol_table
-				struct st_entry * entry = find_entry(name);
-
-				if (entry) {
-					free(name);
-				} else {
-					// add in table
-//					printf("add in table: %s\n", name);
-					Node* anode = malloc(sizeof(Node));
-					anode->type = NON_TERM;
-					anode->id = name;
-					anode->left = NULL;
-
-					entry = add_entry(name, anode);
-
-					int num = st_num_param(name);
-
-					if (num != -1) {
-						entry->node->type = PARAM;
-						entry->node->param_value = num;
-					}
-				}
-
-				
-				if (pnode) {
-					Node* anode = malloc(sizeof(Node));
-					anode->type = operation;
-					anode->left = pnode;
-					anode->right = entry->node;
-					pnode = anode;
-				} else {
-					pnode = entry->node;
-				}
-			}
-			skip_spaces();
-			operation = AND;
-		}
-
-
+		Node* pnode = expr();
 		root_entry->node->left = pnode;
-
 		if (*cur == ';') ++cur;
-
 		skip_spaces();
 	}
 
 	return st[0].node;
-	//return st[st_last_index - 1].node;
 }
 
-
-char * visit_str = NULL;
-
-void visit_skip_spaces() {
-	while (*visit_str == ' ') ++visit_str;
-}
 
 bool visit(Node* node) {
 	if (node == NULL) {
@@ -217,32 +247,43 @@ bool visit(Node* node) {
 	}
 	switch(node->type) {
 		case TERM:
-			visit_skip_spaces();
+			skip_spaces();
 
-			if (node->value == *visit_str) {
-				printf("term=%c\n", node->value);
+			if (node->value == *cur) {
+				//printf("term=%c\n", node->value);
 				//printf("equal\n");
-				++visit_str;
+				++cur;
 				return true;
 			} 
-			//printf("Expected '%c' but not '%c'\n", node->value, *visit_str);
+			//printf("Expected '%c' but not '%c'\n", node->value, *cur);
 			return false;
 			break;
 
 		case NON_TERM:
-			printf("NON TERMINAL: %s\n", node->id);
+			//printf("NON TERMINAL: %s\n", node->id);
 			return visit(node->left);
 			break;
 
+		case REPEAT: {
+				//printf("REPEAT: %s\n", "mystring");
+				char* tmp = cur;	
+				while(visit(node->left)) {
+					tmp = cur;
+				}
+				cur = tmp;
+				return true;
+			}
+			break;
+
 		case PARAM:
-			printf("PARAM: %s\n", node->id);
+			//printf("PARAM: %s\n", node->id);
 			{
 				// remember string
-				visit_skip_spaces();
-				char* begin_visit = visit_str;
+				skip_spaces();
+				char* begin_visit = cur;
 				bool r = visit(node->left);
-				int diff = (int)(visit_str - begin_visit);
-				handlers[node->param_value](begin_visit, diff);
+				int diff = (int)(cur - begin_visit);
+				handler_func(node->param_value, begin_visit, diff);
 				return r;
 			}
 			break;
@@ -260,12 +301,14 @@ bool visit(Node* node) {
 
 		case OR: {
 			//printf("OR\n");
+			char* tmp = cur;	
 			bool a = visit(node->left);
 			//printf("OR: a = %d\n", a);
 			if (a) return true;
+			cur = tmp;
 			bool b = visit(node->right);
 			//printf("OR: b = %d\n", b);
-			return a || b;
+			return b;
 		}
 			break;
 
@@ -290,25 +333,18 @@ struct record records[256];
 int records_last_index = 0;
 int current_param_index = 0;
 
-void dummy_func(char* s, int size) {
-	printf("DUMMY FUNCTION executed\nstr=");
-	while(size != 0) {
-		printf("%c", *s++);
-		--size;
-	}
-	printf("\n");
-}
 
 void param0(char* s, int size) {
-	printf("param0 executed\nstr=");
+	//printf("param0 executed\nstr=");
 	char* name = malloc(size + 1);
 	char* n = name;
 	while(size != 0) {
 		*n++ = *s;
-		printf("%c", *s++);
+		//printf("%c", *s);
+		++s;
 		--size;
 	}
-	printf("\n");
+	//printf("\n");
 	*n = '\0';
 	records[records_last_index].name = name;
 }
@@ -318,9 +354,21 @@ void param1(char* s, int size) {
 	records[records_last_index].param[current_param_index++] = r;
 }
 
+void dummy_func(char* s, int size) {
+	printf("DUMMY FUNCTION executed\nstr=");
+	while(size != 0) {
+		printf("%c", *s++);
+		--size;
+	}
+	printf("\n");
+}
+
 void empty_func(char* s, int size) {
 	
 }
+
+#define HANDLERS_SIZE 16
+void (*handlers[HANDLERS_SIZE])(char *s , int size);
 
 void init_handlers() {
 	handlers[0] = param0;
@@ -332,40 +380,11 @@ void init_handlers() {
 	}
 }
 
-int main() {
-	const char *grammar = 
-		"record = '{' pstring ';' two_param ';' two_param '}' ;"
-		"two_param = '[' %1 '&' %1 ']' ;"
-		"%1 = digit ;"
-		"pstring = ''' %0 ''' ;"
-		"string = ''' char char ''' ;"
-		"%0 = char char ;"
-		"char = letter | digit ;"
-		"letter = small_letter | capital_letter ; "
-		"small_letter = 'a' | 'b' | 'c' | 'd' ;"
-		"capital_letter = 'A'|'B'|'C'|'D';"
-		"digit = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' ;";
-
-	Node* gram = parse_grammar(grammar);	
-
-	printf("\nentries:\n");
-	for (int i = 0; i < st_last_index; ++i) {
-		printf("%s\n", st[i].name);
-	}
-	printf("\n");
-
-	init_handlers();
-
-	char * in =  
-		"{ 'b1' ; [ 2 & 7 ] ; [1&3] }"
-		"{ 'Bc' ; [ 3 & 9 ] ; [6&4] }"
-		"{ '27' ; [ 3 & 8 ] ; [7&4] }"
-		"{ 'ad' ; [ 1 & 0 ] ; [ 3 & 1 ] }";
-
-	visit_str = in;
-	while(*visit_str != '\0') {
+void parse_data(Node* gram, const char* s) {
+	cur = s;
+	while(*cur != '\0') {
 		bool result = visit(gram);
-		printf("result = %d\n", result);
+		//printf("result = %d\n", result);
 		if (result) {
 			// make record
 			current_param_index = 0;	
@@ -374,16 +393,51 @@ int main() {
 			break;
 		}
 	}
+}
 
-	for(int i = 0; i < records_last_index; ++i) {
-		printf("str %d = %s %d %d %d %d\n", i, records[i].name, records[i].param[0], records[i].param[1], records[i].param[2], records[i].param[3]);
+void handler_func(int index, char *s , int size) {
+	handlers[index](s, size);
+}
+
+int main() {
+	const char *grammar = 
+		"record = '{' pstring ';' two_param ';' two_param '}' ;"
+		"two_param = '[' %1 '&' %1 ']' ;"
+		"%1 = { digit } ;"
+		"pstring = ''' %0 ''' ;"
+		"%0 = { char } ;"
+		"char = letter | digit | ' ' ;"
+		"letter = small_letter | capital_letter ; "
+		"small_letter   = 'a'|'b'|'c'|'d'|'e'|'f'|'g'|'h'|'i'|'j'|'k'|'l'|'m'|'n'|'o'|'p'|'q'|'r'|'s'|'t'|'u'|'v'|'w'|'x'|'y'|'z';"
+		"capital_letter = 'A'|'B'|'C'|'D'|'E'|'F'|'G'|'H'|'I'|'J'|'K'|'L'|'M'|'N'|'O'|'P'|'Q'|'R'|'S'|'T'|'U'|'V'|'W'|'X'|'Y'|'Z';"
+		"digit = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' ;";
+
+	Node* gram = parse_grammar(grammar);	
+
+	/*
+	printf("\nentries:\n");
+	for (int i = 0; i < st_last_index; ++i) {
+		printf("%s\n", st[i].name);
 	}
-/*
+	printf("\n");
+	//*/
+
+	init_handlers();
+
 	const char * s[] = {
 		" { 'Parametr1 2000' ; [ 5 & 2 ] ; [ 3 & 2 ] }{'ParametrLoooooooong 2021';[10&5];[ 6 &4]}",
 		"{'Parametr 2000' ; [ 5&2 ] ; [ 3 & 4 ] }",
 		"{ 'Parametr 2000';[ 5 & 2 ];[ 3 &10 ] }"
 	};
-	//*/
+
+	char ** sp = (char**) s;
+	char ** end = sp + sizeof(s) / sizeof(s[0]);
+	for(; sp != end; ++sp) {
+		parse_data(gram, *sp);
+	}
+
+	for(int i = 0; i < records_last_index; ++i) {
+		printf("str %d = %s %d %d %d %d\n", i, records[i].name, records[i].param[0], records[i].param[1], records[i].param[2], records[i].param[3]);
+	}
 }
 

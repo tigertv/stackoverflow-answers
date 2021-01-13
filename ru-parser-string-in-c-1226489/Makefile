@@ -3,7 +3,7 @@
 CC = gcc
 OPTS =  -Wall -Wextra -std=c11 -O3
 APP = main
-SRC = $(wildcard *.c)
+SRC = new-main.c # $(wildcard *.c)
 
 all: $(APP)
 

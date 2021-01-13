@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-#define ENTRIES 128
 void handler_func(int index, char *s , int size); 
 char *cur;
 	
@@ -16,26 +15,27 @@ typedef struct node {
 	int param_value; // for PARAM
 	struct node* left;
 	struct node* right;
-} Node;
+} myparser_node_t;
 
-struct st_entry {
+struct myparser_st_entry {
 	char* name;
-	Node* node;
+	myparser_node_t* node;
 };
 
-struct st_entry st[ENTRIES];
+#define ENTRIES 128
+struct myparser_st_entry st[ENTRIES];
 int st_last_index;
 
-struct st_entry* find_entry(char *name);
-struct st_entry* add_entry(char* name, Node* node);
+struct myparser_st_entry* myparser_find_entry(char *name);
+struct myparser_st_entry* myparser_add_entry(char* name, myparser_node_t* node);
 
-int st_num_param(char* name);
-void skip_spaces();
-void ex(char c);
-char* id();
+int myparser_st_num_param(char* name);
+void myparser_skip_spaces();
+void myparser_ex(char c);
+char* myparser_id();
 
-Node* expr();
-Node* parse_grammar(const char * grammar);
-bool visit(Node* node);
+myparser_node_t* myparser_expr();
+myparser_node_t* parse_grammar(const char * grammar);
+bool myparser_visit(myparser_node_t* node);
 
 #endif

@@ -1,10 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-
 #include "parser.h"
-
-/////////////////////////////////////////////////////////////////////////////////////////
 
 struct record {
 	char* name;
@@ -50,27 +47,28 @@ void empty_func(char* s, int size) {
 	
 }
 
-#define HANDLERS_SIZE 16
+#define HANDLERS_SIZE 2
 void (*handlers[HANDLERS_SIZE])(char *s , int size);
 
 void init_handlers() {
 	handlers[0] = param0;
 	handlers[1] = param1;
-
+/*
 	for(int i = 2; i < HANDLERS_SIZE; ++i) {
 		handlers[i] = empty_func;
 		//handlers[i] = dummy_func;
 	}
+	//*/
 }
 
 void handler_func(int index, char *s , int size) {
 	handlers[index](s, size);
 }
 
-void parse_data(Node* gram, const char* s) {
+void parse_data(myparser_node_t* gram, const char* s) {
 	cur = s;
 	while(*cur != '\0') {
-		bool result = visit(gram);
+		bool result = myparser_visit(gram);
 		//printf("PARSE_DATA result = %d\n", result);
 		current_param_index = 0;	
 		if (result) {
@@ -84,8 +82,8 @@ void parse_data(Node* gram, const char* s) {
 
 int main() {
 	const char *grammar = 
-		"record = '{' pstring ';' two_param ';' two_param '}' ;"
-		"pstring = ''' %0 ''' ;"
+		"record = '{' string ';' two_param ';' two_param '}' ;"
+		"string = ''' %0 ''' ;"
 		"%0 = {char} ;"
 		"char = letter | ' ' | digit ;"
 		"two_param = '[' %1 '&' %1 ']' ;"
@@ -94,7 +92,7 @@ int main() {
 	// "digit" is by default
 	// "letter" is by default
 
-	Node* gram = parse_grammar(grammar);	
+	myparser_node_t* gram = parse_grammar(grammar);	
 
 	//*
 	printf("\nentries:\n");

@@ -30,6 +30,7 @@ void param0(char* s, int size) {
 }
 
 void param1(char* s, int size) {
+	(void)size; // unused
 	int r = atoi(s);
 	records[records_last_index].param[current_param_index++] = r;
 }
@@ -43,22 +44,12 @@ void dummy_func(char* s, int size) {
 	printf("\n");
 }
 
-void empty_func(char* s, int size) {
-	
-}
-
 #define HANDLERS_SIZE 2
 void (*handlers[HANDLERS_SIZE])(char *s , int size);
 
 void init_handlers() {
 	handlers[0] = param0;
 	handlers[1] = param1;
-/*
-	for(int i = 2; i < HANDLERS_SIZE; ++i) {
-		handlers[i] = empty_func;
-		//handlers[i] = dummy_func;
-	}
-	//*/
 }
 
 void handler_func(int index, char *s , int size) {

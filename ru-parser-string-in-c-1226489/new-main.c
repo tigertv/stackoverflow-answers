@@ -78,7 +78,7 @@ char* id() { // identificator
 	skip_spaces();
 
 	char* p = cur;
-	while (*cur != ' ' && *cur != '\0') {
+	while (*cur != ' ' && *cur != '\0' && *cur != '}' && *cur != '|' && *cur != ';') {
 		++cur;
 	}
 	unsigned int size = cur - p;
@@ -231,7 +231,18 @@ Node* parse_grammar(const char * grammar) {
 		ex('=');
 
 		Node* pnode = expr();
-		root_entry->node->left = pnode;
+		if(root_entry->node->type == NON_TERM) {
+			Node* p = root_entry->node;
+			p->type = pnode->type;
+			p->left = pnode->left;
+			p->right = pnode->right;
+			p->id = pnode->id;
+			p->param_value = pnode->param_value;
+			p->value = pnode->value;
+			free(pnode);
+		} else {
+			root_entry->node->left = pnode;
+		}
 		if (*cur == ';') ++cur;
 		skip_spaces();
 	}
@@ -260,7 +271,7 @@ bool visit(Node* node) {
 			break;
 
 		case NON_TERM:
-			//printf("NON TERMINAL: %s\n", node->id);
+			printf("NON TERMINAL: %s\n", node->id);
 			return visit(node->left);
 			break;
 
@@ -380,6 +391,10 @@ void init_handlers() {
 	}
 }
 
+void handler_func(int index, char *s , int size) {
+	handlers[index](s, size);
+}
+
 void parse_data(Node* gram, const char* s) {
 	cur = s;
 	while(*cur != '\0') {
@@ -395,17 +410,13 @@ void parse_data(Node* gram, const char* s) {
 	}
 }
 
-void handler_func(int index, char *s , int size) {
-	handlers[index](s, size);
-}
-
 int main() {
 	const char *grammar = 
 		"record = '{' pstring ';' two_param ';' two_param '}' ;"
 		"two_param = '[' %1 '&' %1 ']' ;"
-		"%1 = { digit } ;"
+		"%1 = {digit} ;"
 		"pstring = ''' %0 ''' ;"
-		"%0 = { char } ;"
+		"%0 = {char} ;"
 		"char = letter | digit | ' ' ;"
 		"letter = small_letter | capital_letter ; "
 		"small_letter   = 'a'|'b'|'c'|'d'|'e'|'f'|'g'|'h'|'i'|'j'|'k'|'l'|'m'|'n'|'o'|'p'|'q'|'r'|'s'|'t'|'u'|'v'|'w'|'x'|'y'|'z';"

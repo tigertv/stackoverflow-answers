@@ -1,7 +1,7 @@
 .PHONY: all clean
 
 CC = gcc
-OPTS =  -Wall -Wextra -std=c11 -O3
+OPTS = -Wall -Wextra -std=c11 -O3
 APP = main
 SRC = new-main.c # $(wildcard *.c)
 

@@ -8,7 +8,7 @@ void handler_func(int index, char *s , int size);
 char *cur = NULL;
 	
 typedef struct node {
-	enum node_type {TERM, NON_TERM, PARAM, OR, AND, REPEAT} type;
+	enum node_type {TERM, NON_TERM, PARAM, OR, AND, REPEAT, DIGIT} type;
 	char value; // for TERM 
 	char* id;   // for NON_TERM
 	int param_value; // for PARAM
@@ -48,8 +48,7 @@ struct st_entry* add_entry(char* name, Node* node) {
 }
 
 int st_num_param(char* name) {
-	char * s = "%";
-	char *p = s;
+	char *p = "%";
 	char *n = name;
 	while (*p == *n && *p != '\0') {
 		++p;
@@ -109,12 +108,17 @@ Node* expr() {
 				exit(-1);
 			}
 			++cur;
-//				printf("terminal = %c\n", c);
-			ex('\'');
+
+			printf("terminal = '%c'\n", c);
 
 			Node* term = malloc(sizeof(Node));
-			term->type = TERM;			
 			term->value = c; 
+			//if (c >= '0' && c <= '9') {
+			//	term->type = DIGIT;			
+			//} else {
+				term->type = TERM;			
+			//}
+			ex('\'');
 
 			if (pnode) {
 				Node* anode = malloc(sizeof(Node));
@@ -125,6 +129,7 @@ Node* expr() {
 			} else {
 				pnode = term;
 			}
+			skip_spaces();
 
 		} else if (*cur == '|') {
 			++cur;
@@ -138,6 +143,7 @@ Node* expr() {
 			} else {
 				pnode = n;
 			}
+			skip_spaces();
 			
 		} else if (*cur == '(') {
 			 
@@ -163,7 +169,11 @@ Node* expr() {
 
 		} else if (*cur == '}') {
 			++cur;
+			skip_spaces();
 			return pnode;
+		} else if (*cur == ' ') {
+			printf("SPACE HERE");
+			skip_spaces();
 		} else {
 			// non-terminal
 
@@ -203,8 +213,9 @@ Node* expr() {
 			} else {
 				pnode = entry->node;
 			}
+			skip_spaces();
 		}
-		skip_spaces();
+
 	}
 	return pnode;
 }
@@ -247,6 +258,13 @@ Node* parse_grammar(const char * grammar) {
 		skip_spaces();
 	}
 
+	struct st_entry* digit = find_entry("digit");
+	if (digit && digit->node->type == NON_TERM) {
+		// NON_TERM node shouldn't be presented in the end of creating of grammar AST
+		Node* p = digit->node;
+		p->type = DIGIT;
+	}
+
 	return st[0].node;
 }
 
@@ -256,12 +274,14 @@ bool visit(Node* node) {
 		printf("Node is NULL\n");
 		return false;
 	}
+	bool inRepeating = false;
+
 	switch(node->type) {
 		case TERM:
-			skip_spaces();
+			if (!inRepeating) skip_spaces();
 
 			if (node->value == *cur) {
-				//printf("term=%c\n", node->value);
+				printf("term=%c\n", *cur);
 				//printf("equal\n");
 				++cur;
 				return true;
@@ -270,27 +290,44 @@ bool visit(Node* node) {
 			return false;
 			break;
 
+		/*
 		case NON_TERM:
 			printf("NON TERMINAL: %s\n", node->id);
 			return visit(node->left);
 			break;
+		//*/
 
-		case REPEAT: {
-				//printf("REPEAT: %s\n", "mystring");
-				char* tmp = cur;	
-				while(visit(node->left)) {
-					tmp = cur;
-				}
-				cur = tmp;
+		case DIGIT : {
+			//skip_spaces();
+			printf("visit DIGIT: %c\n", *cur);
+			if (*cur >= '0' && *cur <= '9') {
+				printf("DIGIT: %c\n", *cur);
+				++cur;
 				return true;
 			}
+			return false;
+		}
+			break;
+
+		case REPEAT: {
+			printf("REPEAT: %s\n", "g");
+			char* tmp = cur;	
+			inRepeating = true;
+			while(visit(node->left)) {
+				tmp = cur;
+			}
+			cur = tmp;
+			printf("REPEAT end: %c\n", *cur);
+			inRepeating = false;
+			return true;
+		}
 			break;
 
 		case PARAM:
+			if (!inRepeating) skip_spaces();
 			//printf("PARAM: %s\n", node->id);
 			{
 				// remember string
-				skip_spaces();
 				char* begin_visit = cur;
 				bool r = visit(node->left);
 				int diff = (int)(cur - begin_visit);
@@ -300,6 +337,7 @@ bool visit(Node* node) {
 			break;
 
 		case AND: {
+			if (!inRepeating) skip_spaces();
 			//printf("AND\n");
 			bool a = visit(node->left);
 			if (a == false) return a;
@@ -311,13 +349,17 @@ bool visit(Node* node) {
 			break;
 
 		case OR: {
+			if (!inRepeating) skip_spaces();
 			//printf("OR\n");
+			//printf("OR cur = %c\n", *cur);
 			char* tmp = cur;	
 			bool a = visit(node->left);
+			//printf("OR a cur = %c\n", *cur);
 			//printf("OR: a = %d\n", a);
 			if (a) return true;
 			cur = tmp;
 			bool b = visit(node->right);
+			//printf("OR b cur = %c\n", *cur);
 			//printf("OR: b = %d\n", b);
 			return b;
 		}
@@ -399,10 +441,10 @@ void parse_data(Node* gram, const char* s) {
 	cur = s;
 	while(*cur != '\0') {
 		bool result = visit(gram);
-		//printf("result = %d\n", result);
+		printf("PARSE_DATA result = %d\n", result);
+		current_param_index = 0;	
 		if (result) {
 			// make record
-			current_param_index = 0;	
 			++records_last_index;
 		} else {
 			break;
@@ -417,18 +459,20 @@ int main() {
 		"%1 = {digit} ;"
 		"pstring = ''' %0 ''' ;"
 		"%0 = {char} ;"
-		"char = letter | digit | ' ' ;"
+		"char = ' ' | letter | digit ;"
 		"letter = small_letter | capital_letter ; "
 		"small_letter   = 'a'|'b'|'c'|'d'|'e'|'f'|'g'|'h'|'i'|'j'|'k'|'l'|'m'|'n'|'o'|'p'|'q'|'r'|'s'|'t'|'u'|'v'|'w'|'x'|'y'|'z';"
 		"capital_letter = 'A'|'B'|'C'|'D'|'E'|'F'|'G'|'H'|'I'|'J'|'K'|'L'|'M'|'N'|'O'|'P'|'Q'|'R'|'S'|'T'|'U'|'V'|'W'|'X'|'Y'|'Z';"
-		"digit = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' ;";
+//		"digit = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' ;"
+	;
+	// digit becomes default
 
 	Node* gram = parse_grammar(grammar);	
 
-	/*
+	//*
 	printf("\nentries:\n");
 	for (int i = 0; i < st_last_index; ++i) {
-		printf("%s\n", st[i].name);
+		printf("entry: %s\n", st[i].name);
 	}
 	printf("\n");
 	//*/
@@ -436,9 +480,9 @@ int main() {
 	init_handlers();
 
 	const char * s[] = {
-		" { 'Parametr1 2000' ; [ 5 & 2 ] ; [ 3 & 2 ] }{'ParametrLoooooooong 2021';[10&5];[ 6 &4]}",
-		"{'Parametr 2000' ; [ 5&2 ] ; [ 3 & 4 ] }",
-		"{ 'Parametr 2000';[ 5 & 2 ];[ 3 &10 ] }"
+		" { 'Parametr1 2001' ; [ 5 & 2 ] ; [ 3 & 2 ] }{'ParametrLoooooooong 2021';[10&5];[ 6 &4]}",
+		"{'Parametr 2002' ; [ 5&2 ] ; [ 3 & 4 ] }",
+		"{ 'Parametr 2003';[ 5 & 2 ];[ 3 &10 ] }"
 	};
 
 	char ** sp = (char**) s;

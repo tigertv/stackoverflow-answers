@@ -56,10 +56,10 @@ void handler_func(int index, char *s , int size) {
 	handlers[index](s, size);
 }
 
-void parse_data(myparser_node_t* gram, const char* s) {
-	cur = s;
-	while(*cur != '\0') {
-		bool result = myparser_visit(gram);
+void parse_data(myparser_t* parser, myparser_node_t* gram, const char* s) {
+	parser->cur = s;
+	while(*parser->cur != '\0') {
+		bool result = myparser_visit(parser, gram);
 		//printf("PARSE_DATA result = %d\n", result);
 		current_param_index = 0;	
 		if (result) {
@@ -82,16 +82,15 @@ int main() {
 	;
 	// "digit" is by default
 	// "letter" is by default
+	myparser_t* parser = myparser_new();
+	parser->handler = handler_func;
+	myparser_node_t* gram = myparser_parse_grammar(parser, grammar);	
 
-	myparser_node_t* gram = parse_grammar(grammar);	
-
-	//*
 	printf("\nentries:\n");
-	for (int i = 0; i < st_last_index; ++i) {
-		printf("entry: %s\n", st[i].name);
+	for (int i = 0; i < parser->st_index; ++i) {
+		printf("entry: %s\n", parser->st[i].name);
 	}
 	printf("\n");
-	//*/
 
 	init_handlers();
 
@@ -104,8 +103,10 @@ int main() {
 	char ** sp = (char**) s;
 	char ** end = sp + sizeof(s) / sizeof(s[0]);
 	for(; sp != end; ++sp) {
-		parse_data(gram, *sp);
+		parse_data(parser, gram, *sp);
 	}
+
+	myparser_delete(parser);
 
 	for(int i = 0; i < records_last_index; ++i) {
 		printf("str %d = %s %d %d %d %d\n", i, records[i].name, records[i].param[0], records[i].param[1], records[i].param[2], records[i].param[3]);

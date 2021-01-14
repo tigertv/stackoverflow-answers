@@ -4,34 +4,20 @@
 
 #include "parser.h"
 
-struct myparser_st_entry st[ENTRIES] = {0};
-int st_last_index = 0;
-char *cur = NULL;
+//////////////////////////////////////////////////////
 
-struct myparser_st_entry* myparser_find_entry(char *name) {
-	for (int j = 0; j < st_last_index; ++j) {
-		char* p = st[j].name;
-		char* ii = name;
-		// find entry by name
-		while (*p == *ii && *p != '\0')  {
-			++p;
-			++ii;
-		}
-		
-		if (*p == '\0' && *ii == *p) {
-			return &st[j];
-		}
-	}
-	return NULL;
-}
+static struct myparser_st_entry* myparser_find_entry(myparser_t* self, char *name);
+static struct myparser_st_entry* myparser_add_entry(myparser_t* self, char* name, myparser_node_t* node);
 
-struct myparser_st_entry* myparser_add_entry(char* name, myparser_node_t* node) {
-	st[st_last_index].name = name;
-	st[st_last_index].node = node;
-	return &st[st_last_index++];
-}
+static int myparser_st_num_param(char* name);
+static void myparser_skip_spaces(myparser_t* self);
+static void myparser_ex(myparser_t* self, char c);
+static char* myparser_id(myparser_t* self);
+static myparser_node_t* myparser_expr(myparser_t* self);
 
-int myparser_st_num_param(char* name) {
+//////////////////////////////////////////////////////
+
+static int myparser_st_num_param(char* name) {
 	char *p = "%";
 	char *n = name;
 	while (*p == *n && *p != '\0') {
@@ -43,28 +29,68 @@ int myparser_st_num_param(char* name) {
 	return atoi(n);
 }
 
-void myparser_skip_spaces() {
-	while (*cur == ' ' || *cur == '\n') ++cur;
+//////////////////////////////////////////////////////
+
+myparser_t* myparser_new() {
+	myparser_t* self = malloc(sizeof(myparser_t));
+	self->st_size = ENTRIES;
+	//self->st = {0};//malloc(sizeof(struct myparser_st_entry) * ENTRIES);
+	self->st_index = 0;
+	self->cur = NULL;
+	return self;
 }
 
-void myparser_ex(char c) { // expect char
-	myparser_skip_spaces();
+void myparser_delete(myparser_t* self) {
+	//free(self->st);
+	free(self);
+}
+
+static struct myparser_st_entry* myparser_find_entry(myparser_t* self, char *name) {
+	for (int j = 0; j < self->st_index; ++j) {
+		char* p = self->st[j].name;
+		char* ii = name;
+		// find entry by name
+		while (*p == *ii && *p != '\0')  {
+			++p;
+			++ii;
+		}
+		
+		if (*p == '\0' && *ii == *p) {
+			return &self->st[j];
+		}
+	}
+	return NULL;
+}
+
+static struct myparser_st_entry* myparser_add_entry(myparser_t* self, char* name, myparser_node_t* node) {
+	int i = self->st_index;
+	self->st[i].name = name;
+	self->st[i].node = node;
+	return &self->st[self->st_index++];
+}
+
+static void myparser_skip_spaces(myparser_t* self) {
+	while (*self->cur == ' ' || *self->cur == '\n') ++self->cur;
+}
+
+static void myparser_ex(myparser_t* self, char c) { // expect char
+	myparser_skip_spaces(self);
 	
-	if (*cur != c) {
-		printf("\nError: expected '%c' but not '%c'\n", c, *cur);
+	if (*self->cur != c) {
+		printf("\nError: expected '%c' but not '%c'\n", c, *self->cur);
 		exit(-1);
 	}
-	++cur;
+	++self->cur;
 }
 
-char* myparser_id() { // identificator
-	myparser_skip_spaces();
+static char* myparser_id(myparser_t* self) { // identificator
+	myparser_skip_spaces(self);
 
-	char* p = cur;
-	while (*cur != ' ' && *cur != '\0' && *cur != '}' && *cur != '|' && *cur != ';') {
-		++cur;
+	char* p = self->cur;
+	while (*self->cur != ' ' && *self->cur != '\0' && *self->cur != '}' && *self->cur != '|' && *self->cur != ';') {
+		++self->cur;
 	}
-	unsigned int size = cur - p;
+	unsigned int size = self->cur - p;
 	char* ret = malloc(size + 1);
 	char *pret = ret;
 	for(unsigned int i = size; i != 0; --i) {
@@ -75,35 +101,28 @@ char* myparser_id() { // identificator
 	return ret;	
 }
 
-
-myparser_node_t* myparser_expr() {
-	//enum node_type operation = AND;
-	myparser_skip_spaces();
-
+static myparser_node_t* myparser_expr(myparser_t* self) {
+	myparser_skip_spaces(self);
 	myparser_node_t* pnode = NULL;
 
-	while (*cur != '\0' && *cur != ';') { 
+	while (*self->cur != '\0' && *self->cur != ';') { 
 		//printf("operation = %d\n", operation);
-		if (*cur == '\'') {
+		if (*self->cur == '\'') {
 			// terminal
-			++cur;
-			char c = *cur;
+			++self->cur;
+			char c = *self->cur;
 			if (c == '\0') {
 				printf("Error: expected a char\n");
 				exit(-1);
 			}
-			++cur;
+			++self->cur;
 
 			//printf("terminal = '%c'\n", c);
-
 			myparser_node_t* term = malloc(sizeof(myparser_node_t));
 			term->value = c; 
-			//if (c >= '0' && c <= '9') {
-			//	term->type = DIGIT;			
-			//} else {
-				term->type = TERM;			
-			//}
-			myparser_ex('\'');
+			term->type = TERM;			
+
+			myparser_ex(self, '\'');
 
 			if (pnode) {
 				myparser_node_t* anode = malloc(sizeof(myparser_node_t));
@@ -114,11 +133,11 @@ myparser_node_t* myparser_expr() {
 			} else {
 				pnode = term;
 			}
-			myparser_skip_spaces();
+			myparser_skip_spaces(self);
 
-		} else if (*cur == '|') {
-			++cur;
-			myparser_node_t* n = myparser_expr();
+		} else if (*self->cur == '|') {
+			++self->cur;
+			myparser_node_t* n = myparser_expr(self);
 			if (pnode) {
 				myparser_node_t* anode = malloc(sizeof(myparser_node_t));
 				anode->type = OR;
@@ -128,15 +147,15 @@ myparser_node_t* myparser_expr() {
 			} else {
 				pnode = n;
 			}
-			myparser_skip_spaces();
+			myparser_skip_spaces(self);
 			
-		} else if (*cur == '(') {
+		} else if (*self->cur == '(') {
 			 
-		} else if (*cur == ')') {
+		} else if (*self->cur == ')') {
 
-		} else if (*cur == '{') {
-			++cur;
-			myparser_node_t* n = myparser_expr();
+		} else if (*self->cur == '{') {
+			++self->cur;
+			myparser_node_t* n = myparser_expr(self);
 
 			myparser_node_t* rep = malloc(sizeof(myparser_node_t));
 			rep->type = REPEAT;
@@ -152,20 +171,20 @@ myparser_node_t* myparser_expr() {
 				pnode = rep;
 			}
 
-		} else if (*cur == '}') {
-			++cur;
-			myparser_skip_spaces();
+		} else if (*self->cur == '}') {
+			++self->cur;
+			myparser_skip_spaces(self);
 			return pnode;
-		} else if (*cur == ' ') {
+		} else if (*self->cur == ' ') {
 			printf("SPACE HERE");
-			myparser_skip_spaces();
+			myparser_skip_spaces(self);
 		} else {
 			// non-terminal
 
-			char* name = myparser_id();
+			char* name = myparser_id(self);
 //				printf("non-terminal = %s\n", name);
 			// search in symbol_table
-			struct myparser_st_entry * entry = myparser_find_entry(name);
+			struct myparser_st_entry * entry = myparser_find_entry(self, name);
 
 			if (entry) {
 				free(name);
@@ -178,7 +197,7 @@ myparser_node_t* myparser_expr() {
 				anode->left = NULL;
 				anode->right = NULL;
 
-				entry = myparser_add_entry(name, anode);
+				entry = myparser_add_entry(self, name, anode);
 
 				int num = myparser_st_num_param(name);
 
@@ -198,21 +217,21 @@ myparser_node_t* myparser_expr() {
 			} else {
 				pnode = entry->node;
 			}
-			myparser_skip_spaces();
+			myparser_skip_spaces(self);
 		}
 
 	}
 	return pnode;
 }
 
-myparser_node_t* parse_grammar(const char * grammar) {
-	cur = grammar;
+myparser_node_t* myparser_parse_grammar(myparser_t* self, const char * grammar) {
+	self->cur = grammar;
 
-	while(*cur != '\0') {
-		char* record = myparser_id();
+	while(*self->cur != '\0') {
+		char* record = myparser_id(self);
 //		printf("%s\n", record);
 		
-		struct myparser_st_entry* root_entry = myparser_find_entry(record);
+		struct myparser_st_entry* root_entry = myparser_find_entry(self, record);
 
 		if (!root_entry) {
 			myparser_node_t* anode = malloc(sizeof(myparser_node_t));
@@ -221,12 +240,12 @@ myparser_node_t* parse_grammar(const char * grammar) {
 			anode->left = NULL;
 			anode->right = NULL;
 
-			root_entry = myparser_add_entry(record, anode);
+			root_entry = myparser_add_entry(self, record, anode);
 		}
 
-		myparser_ex('=');
+		myparser_ex(self, '=');
 
-		myparser_node_t* pnode = myparser_expr();
+		myparser_node_t* pnode = myparser_expr(self);
 		if(root_entry->node->type == NON_TERM) {
 			myparser_node_t* p = root_entry->node;
 			p->type = pnode->type;
@@ -239,31 +258,29 @@ myparser_node_t* parse_grammar(const char * grammar) {
 		} else {
 			root_entry->node->left = pnode;
 		}
-		if (*cur == ';') ++cur;
-		myparser_skip_spaces();
+		if (*self->cur == ';') ++self->cur;
+		myparser_skip_spaces(self);
 	}
 
-	struct myparser_st_entry* entry = myparser_find_entry("digit");
+	// Note: NON_TERM node shouldn't be presented in the symbol table at the end of creating of grammar AST
+	struct myparser_st_entry* entry = myparser_find_entry(self, "digit");
+	// set "digit" to default if there is no NON_TERMINAL "digit"
 	if (entry && entry->node->type == NON_TERM) {
-		// set "digit" to default if there is no NON_TERMINAL "digit"
-		// NON_TERM node shouldn't be presented in the end of creating of grammar AST
 		myparser_node_t* p = entry->node;
 		p->type = DIGIT;
 	}
 
-	entry = myparser_find_entry("letter");
+	entry = myparser_find_entry(self, "letter");
+	// set "letter" to default if there is no NON_TERMINAL "letter"
 	if (entry && entry->node->type == NON_TERM) {
-		// set "letter" to default if there is no NON_TERMINAL "letter"
-		// NON_TERM node shouldn't be presented in the end of creating of grammar AST
 		myparser_node_t* p = entry->node;
 		p->type = LETTER;
 	}
 
-	return st[0].node;
+	return self->st[0].node;
 }
 
-
-bool myparser_visit(myparser_node_t* node) {
+bool myparser_visit(myparser_t* self, myparser_node_t* node) {
 	if (node == NULL) {
 		printf("myparser_node_t is NULL\n");
 		return false;
@@ -271,12 +288,12 @@ bool myparser_visit(myparser_node_t* node) {
 
 	switch(node->type) {
 		case TERM:
-			myparser_skip_spaces();
+			myparser_skip_spaces(self);
 
-			if (node->value == *cur) {
-				printf("term=%c\n", *cur);
+			if (node->value == *self->cur) {
+				printf("term=%c\n", *self->cur);
 				//printf("equal\n");
-				++cur;
+				++self->cur;
 				return true;
 			} 
 			//printf("Expected '%c' but not '%c'\n", node->value, *cur);
@@ -289,11 +306,12 @@ bool myparser_visit(myparser_node_t* node) {
 			return myparser_visit(node->left);
 			break;
 		//*/
+
 		case LETTER : {
 			//printf("visit LETTER: %c\n", *cur);
-			if ( (*cur >= 'a' && *cur <= 'z') || (*cur >= 'A' && *cur <= 'Z') ) {
-				printf("LETTER: %c\n", *cur);
-				++cur;
+			if ( (*self->cur >= 'a' && *self->cur <= 'z') || (*self->cur >= 'A' && *self->cur <= 'Z') ) {
+				printf("LETTER: %c\n", *self->cur);
+				++self->cur;
 				return true;
 			}
 			return false;
@@ -302,9 +320,9 @@ bool myparser_visit(myparser_node_t* node) {
 		case DIGIT : {
 			//myparser_skip_spaces();
 			//printf("visit DIGIT: %c\n", *cur);
-			if (*cur >= '0' && *cur <= '9') {
-				printf("DIGIT: %c\n", *cur);
-				++cur;
+			if (*self->cur >= '0' && *self->cur <= '9') {
+				printf("DIGIT: %c\n", *self->cur);
+				++self->cur;
 				return true;
 			}
 			return false;
@@ -313,52 +331,52 @@ bool myparser_visit(myparser_node_t* node) {
 
 		case REPEAT: {
 			//printf("REPEAT: %s\n", "g");
-			char* tmp = cur;	
-			while(myparser_visit(node->left)) {
-				tmp = cur;
+			char* tmp = self->cur;	
+			while(myparser_visit(self, node->left)) {
+				tmp = self->cur;
 			}
-			cur = tmp;
+			self->cur = tmp;
 			//printf("REPEAT end: %c\n", *cur);
 			return true;
 		}
 			break;
 
 		case PARAM:
-			myparser_skip_spaces();
+			myparser_skip_spaces(self);
 			//printf("PARAM: %s\n", node->id);
 			{
 				// remember string
-				char* begin_visit = cur;
-				bool r = myparser_visit(node->left);
-				int diff = (int)(cur - begin_visit);
-				handler_func(node->param_value, begin_visit, diff);
+				char* begin_visit = self->cur;
+				bool r = myparser_visit(self, node->left);
+				int diff = (int)(self->cur - begin_visit);
+				self->handler(node->param_value, begin_visit, diff);
 				return r;
 			}
 			break;
 
 		case AND: {
-			myparser_skip_spaces();
+			myparser_skip_spaces(self);
 			//printf("AND\n");
-			bool a = myparser_visit(node->left);
+			bool a = myparser_visit(self, node->left);
 			if (a == false) return a;
 			//printf("AND: a = %d\n", a);
-			bool b = myparser_visit(node->right);
+			bool b = myparser_visit(self, node->right);
 			//printf("AND: b = %d\n", b);
 			return a && b;
 		}
 			break;
 
 		case OR: {
-			myparser_skip_spaces();
+			myparser_skip_spaces(self);
 			//printf("OR\n");
 			//printf("OR cur = %c\n", *cur);
-			char* tmp = cur;	
-			bool a = myparser_visit(node->left);
+			char* tmp = self->cur;	
+			bool a = myparser_visit(self, node->left);
 			//printf("OR a cur = %c\n", *cur);
 			//printf("OR: a = %d\n", a);
 			if (a) return true;
-			cur = tmp;
-			bool b = myparser_visit(node->right);
+			self->cur = tmp;
+			bool b = myparser_visit(self, node->right);
 			//printf("OR b cur = %c\n", *cur);
 			//printf("OR: b = %d\n", b);
 			return b;

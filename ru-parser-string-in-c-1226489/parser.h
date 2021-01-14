@@ -5,9 +5,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-void handler_func(int index, char *s , int size); 
-char *cur;
-	
 typedef struct node {
 	enum node_type {TERM, NON_TERM, PARAM, OR, AND, REPEAT, DIGIT, LETTER} type;
 	char value; // for TERM 
@@ -23,19 +20,19 @@ struct myparser_st_entry {
 };
 
 #define ENTRIES 128
-struct myparser_st_entry st[ENTRIES];
-int st_last_index;
 
-struct myparser_st_entry* myparser_find_entry(char *name);
-struct myparser_st_entry* myparser_add_entry(char* name, myparser_node_t* node);
+typedef struct myparser {
+	char* cur;
+	struct myparser_st_entry st[ENTRIES];
+	int st_size;
+	int st_index;
+	void (*handler)(int index, char *s , int size); 
+} myparser_t;
 
-int myparser_st_num_param(char* name);
-void myparser_skip_spaces();
-void myparser_ex(char c);
-char* myparser_id();
+myparser_t* myparser_new();
+void myparser_delete(myparser_t* self);
 
-myparser_node_t* myparser_expr();
-myparser_node_t* parse_grammar(const char * grammar);
-bool myparser_visit(myparser_node_t* node);
+myparser_node_t* myparser_parse_grammar(myparser_t* self, const char * grammar);
+bool myparser_visit(myparser_t* self, myparser_node_t* node);
 
 #endif

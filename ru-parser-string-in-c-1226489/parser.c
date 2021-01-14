@@ -6,8 +6,8 @@
 
 //////////////////////////////////////////////////////
 
-static struct myparser_st_entry* myparser_find_entry(myparser_t* self, char *name);
-static struct myparser_st_entry* myparser_add_entry(myparser_t* self, char* name, myparser_node_t* node);
+static myparser_st_entry_t* myparser_find_entry(myparser_t* self, char *name);
+static myparser_st_entry_t* myparser_add_entry(myparser_t* self, char* name, myparser_node_t* node);
 
 static int myparser_st_num_param(char* name);
 static void myparser_skip_spaces(myparser_t* self);
@@ -31,21 +31,22 @@ static int myparser_st_num_param(char* name) {
 
 //////////////////////////////////////////////////////
 
-myparser_t* myparser_new() {
+myparser_t* myparser_new(void (*handle_func)(int index, char *s , int size)) {
 	myparser_t* self = malloc(sizeof(myparser_t));
 	self->st_size = ENTRIES;
-	//self->st = {0};//malloc(sizeof(struct myparser_st_entry) * ENTRIES);
+	self->st = malloc(sizeof(myparser_st_entry_t) * ENTRIES);
 	self->st_index = 0;
 	self->cur = NULL;
+	self->handler = handle_func;
 	return self;
 }
 
 void myparser_delete(myparser_t* self) {
-	//free(self->st);
+	free(self->st);
 	free(self);
 }
 
-static struct myparser_st_entry* myparser_find_entry(myparser_t* self, char *name) {
+static myparser_st_entry_t* myparser_find_entry(myparser_t* self, char *name) {
 	for (int j = 0; j < self->st_index; ++j) {
 		char* p = self->st[j].name;
 		char* ii = name;
@@ -62,7 +63,7 @@ static struct myparser_st_entry* myparser_find_entry(myparser_t* self, char *nam
 	return NULL;
 }
 
-static struct myparser_st_entry* myparser_add_entry(myparser_t* self, char* name, myparser_node_t* node) {
+static myparser_st_entry_t* myparser_add_entry(myparser_t* self, char* name, myparser_node_t* node) {
 	int i = self->st_index;
 	self->st[i].name = name;
 	self->st[i].node = node;
@@ -184,7 +185,7 @@ static myparser_node_t* myparser_expr(myparser_t* self) {
 			char* name = myparser_id(self);
 //				printf("non-terminal = %s\n", name);
 			// search in symbol_table
-			struct myparser_st_entry * entry = myparser_find_entry(self, name);
+			myparser_st_entry_t* entry = myparser_find_entry(self, name);
 
 			if (entry) {
 				free(name);
@@ -231,7 +232,7 @@ myparser_node_t* myparser_parse_grammar(myparser_t* self, const char * grammar) 
 		char* record = myparser_id(self);
 //		printf("%s\n", record);
 		
-		struct myparser_st_entry* root_entry = myparser_find_entry(self, record);
+		myparser_st_entry_t* root_entry = myparser_find_entry(self, record);
 
 		if (!root_entry) {
 			myparser_node_t* anode = malloc(sizeof(myparser_node_t));
@@ -263,7 +264,7 @@ myparser_node_t* myparser_parse_grammar(myparser_t* self, const char * grammar) 
 	}
 
 	// Note: NON_TERM node shouldn't be presented in the symbol table at the end of creating of grammar AST
-	struct myparser_st_entry* entry = myparser_find_entry(self, "digit");
+	myparser_st_entry_t* entry = myparser_find_entry(self, "digit");
 	// set "digit" to default if there is no NON_TERMINAL "digit"
 	if (entry && entry->node->type == NON_TERM) {
 		myparser_node_t* p = entry->node;

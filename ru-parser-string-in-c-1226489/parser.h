@@ -14,22 +14,24 @@ typedef struct node {
 	struct node* right;
 } myparser_node_t;
 
-struct myparser_st_entry {
+typedef struct myparser_st_entry {
 	char* name;
 	myparser_node_t* node;
-};
+} myparser_st_entry_t;
 
+// this should be removed
 #define ENTRIES 128
 
 typedef struct myparser {
 	char* cur;
-	struct myparser_st_entry st[ENTRIES];
+	myparser_st_entry_t* st;
 	int st_size;
 	int st_index;
 	void (*handler)(int index, char *s , int size); 
 } myparser_t;
 
-myparser_t* myparser_new();
+myparser_t* myparser_new(void (*handle_func)(int index, char *s , int size));
+
 void myparser_delete(myparser_t* self);
 
 myparser_node_t* myparser_parse_grammar(myparser_t* self, const char * grammar);

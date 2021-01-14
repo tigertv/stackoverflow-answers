@@ -73,17 +73,14 @@ void parse_data(myparser_t* parser, myparser_node_t* gram, const char* s) {
 
 int main() {
 	const char *grammar = 
-		"record = '{' string ';' two_param ';' two_param '}' ;"
-		"string = ''' %0 ''' ;"
+		"record = '{' ''' %0 ''' ';' two_param ';' two_param '}' ;"
 		"%0 = {char} ;"
 		"char = letter | ' ' | digit ;"
 		"two_param = '[' %1 '&' %1 ']' ;"
 		"%1 = {digit} ;"
 	;
-	// "digit" is by default
-	// "letter" is by default
-	myparser_t* parser = myparser_new();
-	parser->handler = handler_func;
+	// "digit" and "letter" are by default
+	myparser_t* parser = myparser_new(handler_func);
 	myparser_node_t* gram = myparser_parse_grammar(parser, grammar);	
 
 	printf("\nentries:\n");
